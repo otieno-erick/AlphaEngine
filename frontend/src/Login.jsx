@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { ShieldAlert, Loader2, ShieldCheck, Copy, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Copy, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -8,11 +8,10 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [biometricUrl, setBiometricUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [waitingForBiometrics, setWaitingForBiometrics] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
     setError('');
     try {
@@ -40,12 +39,10 @@ export default function Login({ onLogin }) {
       if (res.data.status === 'success') {
         onLogin();
       } else {
-        setError(res.data.message || 'Verification failed. Please try again.');
-        setWaitingForBiometrics(false);
+        setError(res.data.message || 'Verification failed. Link may have expired.');
       }
     } catch (err) {
       setError('Verification error.');
-      setWaitingForBiometrics(false);
     }
     setLoading(false);
   };
@@ -92,12 +89,11 @@ export default function Login({ onLogin }) {
               <div className="flex items-start gap-3">
                 <ShieldAlert className="text-yellow-500 mt-0.5 shrink-0" size={20} />
                 <div className="w-full">
-                  <h3 className="text-yellow-500 font-medium text-sm mb-1">BRAIN needs to verify your identity</h3>
+                  <h3 className="text-yellow-500 font-medium text-sm mb-1">Biometrics Required</h3>
                   <p className="text-gray-400 text-xs mb-3">
-                    Copy the link below and paste it into Chrome/Edge, OR click "Open in Browser".
+                    <strong>This link expires quickly.</strong> Copy it and paste it into Chrome/Edge immediately.
                   </p>
                   
-                  {/* THE COPY/PASTE LINK BOX */}
                   <div className="flex items-center gap-2 mb-3">
                     <input 
                       type="text" 
@@ -115,36 +111,43 @@ export default function Login({ onLogin }) {
                     </button>
                   </div>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
                     <a 
                       href={biometricUrl} 
                       target="_blank" 
                       rel="noreferrer"
-                      onClick={() => setWaitingForBiometrics(true)}
                       className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex justify-center items-center gap-2"
                     >
                       <ShieldCheck size={16} /> Open in Browser
                     </a>
                     
-                    {waitingForBiometrics && (
-                      <button 
-                        type="button" 
-                        onClick={checkBiometrics} 
-                        className="bg-green-600 hover:bg-green-500 text-white py-2 rounded-md text-sm font-medium transition-colors w-full mt-2"
-                      >
-                        I have verified, continue
-                      </button>
-                    )}
+                    <button 
+                      type="button" 
+                      onClick={checkBiometrics} 
+                      className="bg-green-600 hover:bg-green-500 text-white py-2 rounded-md text-sm font-medium transition-colors w-full"
+                    >
+                      I have verified, continue
+                    </button>
+
+                    <button 
+                      type="button" 
+                      onClick={handleLogin} 
+                      className="text-xs text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1 mt-2"
+                    >
+                      <RefreshCw size={12} /> Link expired? Click to generate a new one
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          <button type="submit" disabled={loading || !!biometricUrl}
-            className={`w-full py-2.5 rounded-lg font-medium transition-colors mt-2 ${loading || !!biometricUrl ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'}`}>
-            {loading ? 'Processing...' : 'Sign in'}
-          </button>
+          {!biometricUrl && (
+            <button type="submit" disabled={loading}
+              className={`w-full py-2.5 rounded-lg font-medium transition-colors mt-2 ${loading ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'}`}>
+              {loading ? 'Processing...' : 'Sign in'}
+            </button>
+          )}
         </form>
       </div>
     </div>
