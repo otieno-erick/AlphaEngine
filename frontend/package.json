@@ -40,21 +40,32 @@
       "dist/**/*",
       "electron/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "../dist/backend.exe",
-        "to": "backend/backend.exe"
-      },
-      {
-        "from": "../dist/backend",
-        "to": "backend/backend"
-      }
-    ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "extraResources": [
+        {
+          "from": "../dist/backend.exe",
+          "to": "backend/backend.exe"
+        }
+      ]
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "extraResources": [
+        {
+          "from": "../dist/backend",
+          "to": "backend/backend"
+        }
+      ]
+    },
+    "linux": {
+      "target": "AppImage",
+      "extraResources": [
+        {
+          "from": "../dist/backend",
+          "to": "backend/backend"
+        }
+      ]
     }
   }
 }
