@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { ShieldAlert, ShieldCheck, Copy, CheckCircle2, RefreshCw } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Loader2, X } from 'lucide-react';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [biometricUrl, setBiometricUrl] = useState('');
+  const [inquiry, setInquiry] = useState('');
+  const [waiting, setWaiting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const popupRef = useRef(null);
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
@@ -21,6 +23,7 @@ export default function Login({ onLogin }) {
         onLogin();
       } else if (res.data.status === 'biometrics_required') {
         setBiometricUrl(res.data.url);
+        setInquiry(res.data.inquiry);
       } else {
         setError(res.data.message || 'Login failed');
       }
@@ -30,27 +33,41 @@ export default function Login({ onLogin }) {
     setLoading(false);
   };
 
-  const checkBiometrics = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.post('http://127.0.0.1:8080/verify-biometrics', {
-        persona_url: biometricUrl
-      });
-      if (res.data.status === 'success') {
-        onLogin();
-      } else {
-        setError(res.data.message || 'Verification failed. Link may have expired.');
+  // Poll for biometrics completion
+  useEffect(() => {
+    if (!waiting || !inquiry) return;
+    let stopped = false;
+    
+    const timer = setInterval(async () => {
+      try {
+        const res = await axios.post('http://127.0.0.1:8080/verify-biometrics', { inquiry });
+        if (stopped) return;
+        
+        if (res.data.status === 'success') {
+          stopped = true;
+          clearInterval(timer);
+          if (popupRef.current) popupRef.current.close();
+          onLogin();
+        }
+      } catch (err) {
+        // Verification pending is normal
       }
-    } catch (err) {
-      setError('Verification error.');
-    }
-    setLoading(false);
-  };
+    }, 2500);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(biometricUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [waiting, inquiry, onLogin]);
+
+  const openVerification = () => {
+    setError('');
+    setWaiting(true);
+    popupRef.current = window.open(biometricUrl, 'brain-identity-check', 'width=520,height=760');
+    if (!popupRef.current) {
+      setWaiting(false);
+      setError('Your browser blocked the window. Allow pop-ups for this page.');
+    }
   };
 
   return (
@@ -89,65 +106,41 @@ export default function Login({ onLogin }) {
               <div className="flex items-start gap-3">
                 <ShieldAlert className="text-yellow-500 mt-0.5 shrink-0" size={20} />
                 <div className="w-full">
-                  <h3 className="text-yellow-500 font-medium text-sm mb-1">Biometrics Required</h3>
+                  <h3 className="text-yellow-500 font-medium text-sm mb-1">BRAIN needs to verify your identity</h3>
                   <p className="text-gray-400 text-xs mb-3">
-                    <strong>This link expires quickly.</strong> Copy it and paste it into Chrome/Edge immediately.
+                    {waiting 
+                      ? "Finish the check in the window that opened. This page signs you in as soon as BRAIN accepts it — leave it open."
+                      : "This happens once. The check opens in its own window; you will not need to type your password again."}
                   </p>
                   
-                  <div className="flex items-center gap-2 mb-3">
-                    <input 
-                      type="text" 
-                      readOnly 
-                      value={biometricUrl} 
-                      className="flex-1 bg-black border border-gray-700 text-xs text-gray-400 p-2 rounded focus:outline-none"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={copyToClipboard}
-                      className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded transition-colors"
-                      title="Copy Link"
-                    >
-                      {copied ? <CheckCircle2 size={16} className="text-green-400" /> : <Copy size={16} />}
-                    </button>
-                  </div>
-
                   <div className="flex flex-col gap-2">
-                    <a 
-                      href={biometricUrl} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex justify-center items-center gap-2"
-                    >
-                      <ShieldCheck size={16} /> Open in Browser
-                    </a>
-                    
-                    <button 
-                      type="button" 
-                      onClick={checkBiometrics} 
-                      className="bg-green-600 hover:bg-green-500 text-white py-2 rounded-md text-sm font-medium transition-colors w-full"
-                    >
-                      I have verified, continue
-                    </button>
-
-                    <button 
-                      type="button" 
-                      onClick={handleLogin} 
-                      className="text-xs text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1 mt-2"
-                    >
-                      <RefreshCw size={12} /> Link expired? Click to generate a new one
-                    </button>
+                    {!waiting ? (
+                      <button 
+                        type="button" 
+                        onClick={openVerification}
+                        className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex justify-center items-center gap-2"
+                      >
+                        <ShieldCheck size={16} /> Verify identity
+                      </button>
+                    ) : (
+                      <button 
+                        type="button" 
+                        onClick={() => setWaiting(false)} 
+                        className="bg-red-600 hover:bg-red-500 text-white py-1.5 rounded-md text-sm font-medium transition-colors w-full flex items-center justify-center gap-2"
+                      >
+                        <X size={16} /> Stop waiting
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {!biometricUrl && (
-            <button type="submit" disabled={loading}
-              className={`w-full py-2.5 rounded-lg font-medium transition-colors mt-2 ${loading ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'}`}>
-              {loading ? 'Processing...' : 'Sign in'}
-            </button>
-          )}
+          <button type="submit" disabled={loading || !!biometricUrl}
+            className={`w-full py-2.5 rounded-lg font-medium transition-colors mt-2 ${loading || !!biometricUrl ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'}`}>
+            {loading ? 'Processing...' : 'Sign in'}
+          </button>
         </form>
       </div>
     </div>
