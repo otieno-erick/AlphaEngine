@@ -41,7 +41,8 @@ jobs:
 
       - name: Compile Backend to Executable
         run: |
-          pyinstaller --onefile --name backend main.py
+          mkdir -p backend/dist backend/build
+          pyinstaller --onefile --name backend --distpath backend/dist --workpath backend/build main.py
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
@@ -49,7 +50,7 @@ jobs:
 
       - name: Build Electron App
         working-directory: ./frontend
-        run: npm run electron:build
+        run: npm run electron:build -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
