@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Alpha Engine Desktop App",
-  "main": "electron/main.js",
+  "main": "electron/main.cjs",
   "author": "Your Name",
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "axios": "^1.6.7",
+    "electron-updater": "^6.1.8",
     "lucide-react": "^0.323.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -33,6 +34,12 @@
   "build": {
     "appId": "com.alphaengine.app",
     "productName": "AlphaEngine",
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release"
+      }
+    ],
     "directories": {
       "output": "release"
     },
