@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { ShieldAlert, Loader2, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, Loader2, ShieldCheck, Copy, CheckCircle2 } from 'lucide-react';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -9,6 +9,7 @@ export default function Login({ onLogin }) {
   const [biometricUrl, setBiometricUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [waitingForBiometrics, setWaitingForBiometrics] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -49,6 +50,12 @@ export default function Login({ onLogin }) {
     setLoading(false);
   };
 
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(biometricUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <div className="flex items-center gap-3 mb-8">
@@ -77,7 +84,6 @@ export default function Login({ onLogin }) {
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
                 className="w-full bg-[#1a1f2b] border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary transition-colors pr-16"
                 placeholder="Your BRAIN password" />
-              <button type="button" className="absolute right-3 top-2.5 text-sm text-gray-500 hover:text-gray-300">Show</button>
             </div>
           </div>
 
@@ -85,34 +91,51 @@ export default function Login({ onLogin }) {
             <div className="bg-[#1a1f2b] border border-yellow-900/50 p-4 rounded-lg mt-4">
               <div className="flex items-start gap-3">
                 <ShieldAlert className="text-yellow-500 mt-0.5 shrink-0" size={20} />
-                <div>
+                <div className="w-full">
                   <h3 className="text-yellow-500 font-medium text-sm mb-1">BRAIN needs to verify your identity</h3>
                   <p className="text-gray-400 text-xs mb-3">
-                    {waitingForBiometrics 
-                      ? "Finish the check in your web browser. Once done, click the button below."
-                      : "Click the button below. It will open your web browser to verify your face."}
+                    Copy the link below and paste it into Chrome/Edge, OR click "Open in Browser".
                   </p>
                   
-                  {!waitingForBiometrics ? (
+                  {/* THE COPY/PASTE LINK BOX */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={biometricUrl} 
+                      className="flex-1 bg-black border border-gray-700 text-xs text-gray-400 p-2 rounded focus:outline-none"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={copyToClipboard}
+                      className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded transition-colors"
+                      title="Copy Link"
+                    >
+                      {copied ? <CheckCircle2 size={16} className="text-green-400" /> : <Copy size={16} />}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
                     <a 
                       href={biometricUrl} 
                       target="_blank" 
                       rel="noreferrer"
                       onClick={() => setWaitingForBiometrics(true)}
-                      className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex items-center gap-2"
+                      className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex justify-center items-center gap-2"
                     >
-                      <ShieldCheck size={16} /> Verify in Browser
+                      <ShieldCheck size={16} /> Open in Browser
                     </a>
-                  ) : (
-                    <div className="flex flex-col gap-3 mt-2">
-                      <span className="flex items-center gap-2 text-sm text-yellow-500">
-                        <Loader2 size={16} className="animate-spin" /> Waiting for verification...
-                      </span>
-                      <button type="button" onClick={checkBiometrics} className="bg-green-600 hover:bg-green-500 text-white py-1.5 px-4 rounded-md text-sm font-medium transition-colors w-full">
+                    
+                    {waitingForBiometrics && (
+                      <button 
+                        type="button" 
+                        onClick={checkBiometrics} 
+                        className="bg-green-600 hover:bg-green-500 text-white py-2 rounded-md text-sm font-medium transition-colors w-full mt-2"
+                      >
                         I have verified, continue
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
