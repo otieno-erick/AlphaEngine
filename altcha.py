@@ -34,10 +34,8 @@ def solve(payload):
     salt = challenge.salt.encode("utf-8")
     target = challenge.challenge.lower()
     started = time.monotonic()
-    
     for number in range(challenge.maxnumber + 1):
         if hashlib.sha256(salt + str(number).encode("ascii")).hexdigest() == target:
             took_ms = int((time.monotonic() - started) * 1000)
             return Solution(challenge, number, took_ms)
-            
     raise RuntimeError("No solution found for ALTCHA challenge.")
