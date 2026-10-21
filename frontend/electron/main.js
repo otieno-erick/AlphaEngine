@@ -6,15 +6,14 @@ let mainWindow;
 let pythonProcess;
 
 function startPythonBackend() {
-  // This runs the backend. In production, we will point this to the compiled backend.exe
   const isDev = !app.isPackaged;
-  const backendPath = isDev 
-    ? path.join(__dirname, '../../venv/Scripts/python.exe') // Local dev
-    : path.join(process.resourcesPath, 'backend/backend.exe'); // Production (.exe)
-
+  
   if (isDev) {
     pythonProcess = spawn('python', [path.join(__dirname, '../../main.py')]);
   } else {
+    const backendExe = process.platform === 'win32' ? 'backend.exe' : 'backend';
+    const backendPath = path.join(process.resourcesPath, 'backend', backendExe);
+    
     pythonProcess = spawn(backendPath, [], { detached: false });
   }
 
@@ -33,7 +32,6 @@ function createWindow() {
     }
   });
 
-  // Wait a few seconds for Python to start, then load UI
   setTimeout(() => {
     const isDev = !app.isPackaged;
     if (isDev) {
