@@ -26,7 +26,7 @@ class LoginData(BaseModel):
     password: str
 
 class BiometricsData(BaseModel):
-    persona_url: str
+    inquiry: str
 
 class SimulationData(BaseModel):
     alpha_payload: dict
@@ -41,7 +41,7 @@ def login(data: LoginData):
 
 @app.post("/verify-biometrics")
 def verify_biometrics(data: BiometricsData):
-    return brain.verify_biometrics(data.persona_url)
+    return brain.verify_biometrics(data.inquiry)
 
 @app.post("/simulate")
 async def simulate(data: SimulationData):
