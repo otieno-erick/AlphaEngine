@@ -30,12 +30,6 @@ export default function Login({ onLogin }) {
     setLoading(false);
   };
 
-  const openBiometrics = () => {
-    // Open in a native Electron popup window
-    window.open(biometricUrl, 'PersonaVerification', 'width=500,height=750');
-    setWaitingForBiometrics(true);
-  };
-
   const checkBiometrics = async () => {
     setLoading(true);
     try {
@@ -95,20 +89,26 @@ export default function Login({ onLogin }) {
                   <h3 className="text-yellow-500 font-medium text-sm mb-1">BRAIN needs to verify your identity</h3>
                   <p className="text-gray-400 text-xs mb-3">
                     {waitingForBiometrics 
-                      ? "Finish the check in the window that opened. This page signs you in as soon as BRAIN accepts it — leave it open."
-                      : "This happens once. The check opens in its own window; you will not need to type your password again."}
+                      ? "Finish the check in your web browser. Once done, click the button below."
+                      : "Click the button below. It will open your web browser to verify your face."}
                   </p>
                   
                   {!waitingForBiometrics ? (
-                    <button type="button" onClick={openBiometrics} className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors flex items-center gap-2">
-                      <ShieldCheck size={16} /> Verify identity
-                    </button>
+                    <a 
+                      href={biometricUrl} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      onClick={() => setWaitingForBiometrics(true)}
+                      className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex items-center gap-2"
+                    >
+                      <ShieldCheck size={16} /> Verify in Browser
+                    </a>
                   ) : (
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="flex items-center gap-2 text-sm text-gray-400">
-                        <Loader2 size={16} className="animate-spin" /> Waiting for BRAIN...
+                    <div className="flex flex-col gap-3 mt-2">
+                      <span className="flex items-center gap-2 text-sm text-yellow-500">
+                        <Loader2 size={16} className="animate-spin" /> Waiting for verification...
                       </span>
-                      <button type="button" onClick={checkBiometrics} className="text-sm text-primary hover:underline">
+                      <button type="button" onClick={checkBiometrics} className="bg-green-600 hover:bg-green-500 text-white py-1.5 px-4 rounded-md text-sm font-medium transition-colors w-full">
                         I have verified, continue
                       </button>
                     </div>
