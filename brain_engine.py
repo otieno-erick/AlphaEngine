@@ -3,7 +3,8 @@ import json
 import os
 import requests
 import time
-from urllib.parse import urljoin # THIS IS THE FIX
+from urllib.parse import quote, urljoin
+import altcha
 
 class BrainEngine:
     def __init__(self):
@@ -23,30 +24,43 @@ class BrainEngine:
             json.dump(self.cache, f)
 
     def login(self, email, password):
+        # 1. Solve ALTCHA captcha
+        captcha_r = self.session.get(f"{self.base_url}/captcha")
+        if captcha_r.status_code != 200:
+            return {"status": "error", "message": "Failed to fetch captcha"}
+        
+        solution = altcha.solve(captcha_r.json())
+        
+        # 2. Send credentials with captcha
         self.session.auth = (email, password)
-        r = self.session.post(f"{self.base_url}/authentication")
+        payload = {"captcha": solution.encode()}
+        r = self.session.post(f"{self.base_url}/authentication", json=payload)
         
         if r.status_code == 201:
             return {"status": "success", "message": "Logged in successfully"}
         
         elif r.status_code == 401 and r.headers.get("WWW-Authenticate") == "persona":
-            # Using urljoin EXACTLY as your ace_lib.py does
-            persona_url = urljoin(r.url, r.headers["Location"])
-            return {"status": "biometrics_required", "url": persona_url}
+            # 3. Extract inquiry and verification URL
+            location = r.headers.get("Location", "")
+            inquiry = location.split("inquiry=")[-1] if "inquiry=" in location else ""
+            persona_url = urljoin(self.base_url, location)
+            return {"status": "biometrics_required", "url": persona_url, "inquiry": inquiry}
             
-        return {"status": "error", "message": "Invalid credentials"}
+        return {"status": "error", "message": r.text}
 
-    def verify_biometrics(self, persona_url):
+    def verify_biometrics(self, inquiry):
         try:
-            # The handshake
-            handshake = self.session.post(persona_url, timeout=15)
-            
-            if handshake.status_code == 201:
+            # POST to persona with the inquiry parameter
+            r = self.session.post(
+                f"{self.base_url}/authentication/persona",
+                params={"inquiry": inquiry}
+            )
+            if r.status_code == 201:
+                # Check if session is now authenticated
                 auth_check = self.session.get(f"{self.base_url}/authentication")
                 if auth_check.status_code == 200:
-                    return {"status": "success", "message": "Biometrics verified"}
-            
-            return {"status": "error", "message": "Verification failed. Link may have expired."}
+                    return {"status": "success"}
+            return {"status": "pending"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
