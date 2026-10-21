@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ShieldAlert, ShieldCheck, Loader2, X } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Loader2, X, RefreshCw } from 'lucide-react';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -10,12 +10,14 @@ export default function Login({ onLogin }) {
   const [inquiry, setInquiry] = useState('');
   const [waiting, setWaiting] = useState(false);
   const [loading, setLoading] = useState(false);
-  const popupRef = useRef(null);
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
     setError('');
+    setBiometricUrl(''); // Reset if retrying
+    setWaiting(false);
+    
     try {
       const res = await axios.post('http://127.0.0.1:8080/login', { email, password });
       
@@ -46,11 +48,10 @@ export default function Login({ onLogin }) {
         if (res.data.status === 'success') {
           stopped = true;
           clearInterval(timer);
-          if (popupRef.current) popupRef.current.close();
           onLogin();
         }
       } catch (err) {
-        // Verification pending is normal
+        // Keep polling silently
       }
     }, 2500);
 
@@ -60,14 +61,9 @@ export default function Login({ onLogin }) {
     };
   }, [waiting, inquiry, onLogin]);
 
-  const openVerification = () => {
-    setError('');
+  const handleVerifyClick = () => {
+    // Start polling as soon as they click the link
     setWaiting(true);
-    popupRef.current = window.open(biometricUrl, 'brain-identity-check', 'width=520,height=760');
-    if (!popupRef.current) {
-      setWaiting(false);
-      setError('Your browser blocked the window. Allow pop-ups for this page.');
-    }
   };
 
   return (
@@ -109,27 +105,34 @@ export default function Login({ onLogin }) {
                   <h3 className="text-yellow-500 font-medium text-sm mb-1">BRAIN needs to verify your identity</h3>
                   <p className="text-gray-400 text-xs mb-3">
                     {waiting 
-                      ? "Finish the check in the window that opened. This page signs you in as soon as BRAIN accepts it — leave it open."
-                      : "This happens once. The check opens in its own window; you will not need to type your password again."}
+                      ? "Finish the check in your browser. This page signs you in as soon as BRAIN accepts it."
+                      : "Click the button below. It will open your web browser to verify your face."}
                   </p>
                   
                   <div className="flex flex-col gap-2">
                     {!waiting ? (
-                      <button 
-                        type="button" 
-                        onClick={openVerification}
+                      <a 
+                        href={biometricUrl} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        onClick={handleVerifyClick}
                         className="bg-primary/20 text-primary border border-primary/30 py-1.5 px-4 rounded-md text-sm font-medium hover:bg-primary/30 transition-colors inline-flex justify-center items-center gap-2"
                       >
-                        <ShieldCheck size={16} /> Verify identity
-                      </button>
+                        <ShieldCheck size={16} /> Verify in Browser
+                      </a>
                     ) : (
-                      <button 
-                        type="button" 
-                        onClick={() => setWaiting(false)} 
-                        className="bg-red-600 hover:bg-red-500 text-white py-1.5 rounded-md text-sm font-medium transition-colors w-full flex items-center justify-center gap-2"
-                      >
-                        <X size={16} /> Stop waiting
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <span className="flex items-center gap-2 text-sm text-yellow-500 mb-1">
+                          <Loader2 size={16} className="animate-spin" /> Waiting for BRAIN...
+                        </span>
+                        <button 
+                          type="button" 
+                          onClick={() => setWaiting(false)} 
+                          className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1"
+                        >
+                          <X size={12} /> Stop waiting
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -137,9 +140,10 @@ export default function Login({ onLogin }) {
             </div>
           )}
 
-          <button type="submit" disabled={loading || !!biometricUrl}
-            className={`w-full py-2.5 rounded-lg font-medium transition-colors mt-2 ${loading || !!biometricUrl ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'}`}>
-            {loading ? 'Processing...' : 'Sign in'}
+          {/* SIGN IN BUTTON - Re-enabled so user can get a fresh link */}
+          <button type="submit" disabled={loading}
+            className={`w-full py-2.5 rounded-lg font-medium transition-colors mt-2 ${loading ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'}`}>
+            {loading ? 'Processing...' : (biometricUrl ? 'Generate New Link' : 'Sign in')}
           </button>
         </form>
       </div>
