@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -26,18 +26,9 @@ function createWindow() {
     backgroundColor: '#0b0e14',
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webSecurity: false // Allow cross-origin requests for the popup
     }
-  });
-
-  // --- THE FIX: Force external links to open in the default browser ---
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Open all http/https links in the system default browser (Chrome, Edge, Safari)
-    if (url.startsWith('http:') || url.startsWith('https:')) {
-      shell.openExternal(url);
-      return { action: 'deny' }; // Prevent Electron from opening a blank internal window
-    }
-    return { action: 'allow' };
   });
 
   setTimeout(() => {
@@ -53,41 +44,22 @@ function createWindow() {
 // --- AUTO UPDATER LOGIC ---
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
-
 autoUpdater.on('update-available', () => {
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Available',
-    message: 'A new version is available. Downloading in the background...',
-  });
+  dialog.showMessageBox({ type: 'info', title: 'Update Available', message: 'Downloading in the background...' });
 });
-
 autoUpdater.on('update-downloaded', () => {
   dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Ready',
-    message: 'Update downloaded. The application will restart to apply it.',
+    type: 'info', title: 'Update Ready', message: 'Update downloaded. Restart to apply.',
     buttons: ['Restart Now', 'Later']
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.quitAndInstall();
-    }
-  });
+  }).then((result) => { if (result.response === 0) autoUpdater.quitAndInstall(); });
 });
 
 app.whenReady().then(() => {
   startPythonBackend();
   createWindow();
-
   if (app.isPackaged) {
-    setTimeout(() => {
-      autoUpdater.checkForUpdatesAndNotify().catch(err => console.log(err));
-    }, 5000);
+    setTimeout(() => { autoUpdater.checkForUpdatesAndNotify().catch(err => console.log(err)); }, 5000);
   }
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
 });
 
 app.on('window-all-closed', () => {
