@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -26,9 +26,17 @@ function createWindow() {
     backgroundColor: '#0b0e14',
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
-      webSecurity: false // Allow cross-origin requests for the popup
+      contextIsolation: false
     }
+  });
+
+  // --- THE FIX: Force external links to open in the default system browser ---
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      shell.openExternal(url); // Opens in Chrome/Edge
+      return { action: 'deny' }; // Prevents the white Electron window
+    }
+    return { action: 'allow' };
   });
 
   setTimeout(() => {
