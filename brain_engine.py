@@ -3,6 +3,7 @@ import json
 import os
 import requests
 import time
+from urllib.parse import urljoin # THIS IS THE FIX
 
 class BrainEngine:
     def __init__(self):
@@ -24,26 +25,28 @@ class BrainEngine:
     def login(self, email, password):
         self.session.auth = (email, password)
         r = self.session.post(f"{self.base_url}/authentication")
+        
         if r.status_code == 201:
             return {"status": "success", "message": "Logged in successfully"}
+        
         elif r.status_code == 401 and r.headers.get("WWW-Authenticate") == "persona":
-            # Return the full URL for the popup window
-            persona_url = "https://api.worldquantbrain.com" + r.headers.get("Location")
+            # Using urljoin EXACTLY as your ace_lib.py does
+            persona_url = urljoin(r.url, r.headers["Location"])
             return {"status": "biometrics_required", "url": persona_url}
+            
         return {"status": "error", "message": "Invalid credentials"}
 
     def verify_biometrics(self, persona_url):
         try:
-            # This is the critical handshake step from ace_lib
+            # The handshake
             handshake = self.session.post(persona_url, timeout=15)
             
             if handshake.status_code == 201:
-                # Verify the session is actually active
                 auth_check = self.session.get(f"{self.base_url}/authentication")
                 if auth_check.status_code == 200:
                     return {"status": "success", "message": "Biometrics verified"}
             
-            return {"status": "error", "message": "Biometrics verification failed or was cancelled."}
+            return {"status": "error", "message": "Verification failed. Link may have expired."}
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
