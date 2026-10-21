@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -8,7 +8,6 @@ let pythonProcess;
 
 function startPythonBackend() {
   const isDev = !app.isPackaged;
-
   if (isDev) {
     pythonProcess = spawn('python', [path.join(__dirname, '../../main.py')]);
   } else {
@@ -16,7 +15,6 @@ function startPythonBackend() {
     const backendPath = path.join(process.resourcesPath, 'backend', backendExe);
     pythonProcess = spawn(backendPath, [], { detached: false });
   }
-
   pythonProcess.stdout.on('data', (data) => console.log(`Backend: ${data}`));
   pythonProcess.stderr.on('data', (data) => console.error(`Backend Error: ${data}`));
 }
@@ -30,6 +28,16 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false
     }
+  });
+
+  // --- THE FIX: Force external links to open in the default browser ---
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Open all http/https links in the system default browser (Chrome, Edge, Safari)
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      shell.openExternal(url);
+      return { action: 'deny' }; // Prevent Electron from opening a blank internal window
+    }
+    return { action: 'allow' };
   });
 
   setTimeout(() => {
@@ -67,19 +75,14 @@ autoUpdater.on('update-downloaded', () => {
   });
 });
 
-autoUpdater.on('error', (err) => {
-  console.error('Update Error:', err);
-});
-
 app.whenReady().then(() => {
   startPythonBackend();
   createWindow();
 
-  // Check for updates only in production (when packaged as .exe)
   if (app.isPackaged) {
     setTimeout(() => {
       autoUpdater.checkForUpdatesAndNotify().catch(err => console.log(err));
-    }, 5000); // Wait 5 seconds so UI loads first
+    }, 5000);
   }
 
   app.on('activate', () => {
