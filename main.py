@@ -7,19 +7,12 @@ from task_manager import TaskManager
 import uuid
 import asyncio
 
-app = FastAPI(title="Alpha Engine Backend")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 brain = BrainEngine()
 llm = LLMManager()
-task_mgr = TaskManager(max_concurrent_slots=10)
+task_mgr = TaskManager()
 
 class LoginData(BaseModel):
     email: str
@@ -28,45 +21,56 @@ class LoginData(BaseModel):
 class BiometricsData(BaseModel):
     inquiry: str
 
-class SimulationData(BaseModel):
+class SimData(BaseModel):
     alpha_payload: dict
 
 class LLMData(BaseModel):
     provider: str
     api_key: str
 
+class PromptData(BaseModel):
+    prompt: str
+
+class AlphaID(BaseModel):
+    alpha_id: str
+
 @app.post("/login")
-def login(data: LoginData):
-    return brain.login(data.email, data.password)
+def login(data: LoginData): return brain.login(data.email, data.password)
 
 @app.post("/verify-biometrics")
-def verify_biometrics(data: BiometricsData):
-    return brain.verify_biometrics(data.inquiry)
+def verify_biometrics(data: BiometricsData): return brain.verify_biometrics(data.inquiry)
+
+@app.post("/sync")
+def sync(): return brain.sync_alphas()
+
+@app.get("/alphas")
+def get_alphas(): return brain.get_alphas()
 
 @app.post("/simulate")
-async def simulate(data: SimulationData):
+async def simulate(data: SimData):
     task_id = str(uuid.uuid4())
     await task_mgr.add_task(task_id, data.alpha_payload, brain)
-    return {"task_id": task_id, "status": "queued"}
+    return {"task_id": task_id}
 
 @app.get("/tasks")
-def get_tasks():
-    return task_mgr.active_tasks
+def get_tasks(): return task_mgr.active_tasks
 
 @app.post("/add-llm-key")
 def add_llm_key(data: LLMData):
     llm.add_key(data.provider, data.api_key)
-    return {"status": "success", "message": f"Key added for {data.provider}"}
+    return {"status": "success"}
 
 @app.post("/generate-alpha")
-async def generate_alpha(prompt: str):
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, llm.generate_alpha, prompt)
-    return result
+def generate_alpha(data: PromptData): return llm.generate_alpha(data.prompt)
+
+@app.post("/check-submission")
+def check_submission(data: AlphaID): return brain.check_submission(data.alpha_id)
+
+@app.post("/submit-alpha")
+def submit_alpha(data: AlphaID): return brain.submit_alpha(data.alpha_id)
 
 @app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(task_mgr.worker())
+async def startup_event(): asyncio.create_task(task_mgr.worker())
 
 if __name__ == "__main__":
     import uvicorn
