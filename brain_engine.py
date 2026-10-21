@@ -27,30 +27,43 @@ class BrainEngine:
         if r.status_code == 201:
             return {"status": "success", "message": "Logged in successfully"}
         elif r.status_code == 401 and r.headers.get("WWW-Authenticate") == "persona":
-            return {"status": "biometrics_required", "url": r.headers.get("Location")}
+            # Return the full URL for the popup window
+            persona_url = "https://api.worldquantbrain.com" + r.headers.get("Location")
+            return {"status": "biometrics_required", "url": persona_url}
         return {"status": "error", "message": "Invalid credentials"}
+
+    def verify_biometrics(self, persona_url):
+        try:
+            # This is the critical handshake step from ace_lib
+            handshake = self.session.post(persona_url, timeout=15)
+            
+            if handshake.status_code == 201:
+                # Verify the session is actually active
+                auth_check = self.session.get(f"{self.base_url}/authentication")
+                if auth_check.status_code == 200:
+                    return {"status": "success", "message": "Biometrics verified"}
+            
+            return {"status": "error", "message": "Biometrics verification failed or was cancelled."}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     def hash_alpha(self, alpha_dict):
         alpha_str = json.dumps(alpha_dict, sort_keys=True)
         return hashlib.sha256(alpha_str.encode("utf-8")).hexdigest()
 
     def simulate(self, alpha_payload):
-        # 1. Hash Check
         alpha_hash = self.hash_alpha(alpha_payload)
         if alpha_hash in self.cache:
             return {"status": "cached", "alpha_id": self.cache[alpha_hash]}
 
-        # 2. Region Agnostic Patch
         if alpha_payload.get("settings", {}).get("region") == "ALL":
             alpha_payload["type"] = "REGION_AGNOSTIC"
             alpha_payload["settings"]["lookback"] = 0
 
-        # 3. Send Simulation
         r = self.session.post(f"{self.base_url}/simulations", json=alpha_payload)
         if r.status_code // 100 != 2:
             return {"status": "error", "message": r.text}
 
-        # 4. Poll for result
         progress_url = r.headers["Location"]
         while True:
             prog = self.session.get(progress_url)
@@ -64,7 +77,6 @@ class BrainEngine:
 
         alpha_id = result.get("alpha", 0)
         
-        # 5. Save to Cache
         if alpha_id:
             self.cache[alpha_hash] = alpha_id
             self._save_cache()
