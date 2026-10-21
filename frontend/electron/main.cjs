@@ -1,10 +1,7 @@
-import { app, BrowserWindow } from 'electron';
-import path from 'path';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { app, BrowserWindow, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
+const path = require('path');
+const { spawn } = require('child_process');
 
 let mainWindow;
 let pythonProcess;
@@ -45,9 +42,45 @@ function createWindow() {
   }, 3000);
 }
 
+// --- AUTO UPDATER LOGIC ---
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', () => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Available',
+    message: 'A new version is available. Downloading in the background...',
+  });
+});
+
+autoUpdater.on('update-downloaded', () => {
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Ready',
+    message: 'Update downloaded. The application will restart to apply it.',
+    buttons: ['Restart Now', 'Later']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('Update Error:', err);
+});
+
 app.whenReady().then(() => {
   startPythonBackend();
   createWindow();
+
+  // Check for updates only in production (when packaged as .exe)
+  if (app.isPackaged) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch(err => console.log(err));
+    }, 5000); // Wait 5 seconds so UI loads first
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
