@@ -1,5 +1,6 @@
 {
   "name": "alpha-engine",
+  "type": "module",
   "version": "1.0.0",
   "description": "Alpha Engine Desktop App",
   "main": "electron/main.js",
@@ -43,6 +44,10 @@
       {
         "from": "../dist/backend.exe",
         "to": "backend/backend.exe"
+      },
+      {
+        "from": "../dist/backend",
+        "to": "backend/backend"
       }
     ],
     "win": {
@@ -50,9 +55,6 @@
     },
     "mac": {
       "target": "dmg"
-    },
-    "linux": {
-      "target": "AppImage"
     }
   }
 }
