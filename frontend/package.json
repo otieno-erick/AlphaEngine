@@ -2,63 +2,26 @@
   "name": "alpha-engine",
   "type": "module",
   "version": "1.0.0",
-  "description": "Alpha Engine Desktop App",
   "main": "electron/main.cjs",
   "author": "Your Name",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/otieno-erick/AlphaEngine.git"
-  },
+  "repository": { "type": "git", "url": "https://github.com/otieno-erick/AlphaEngine.git" },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "electron": "electron .",
     "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
-    "axios": "^1.6.7",
-    "electron-updater": "^6.1.8",
-    "lucide-react": "^0.323.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "axios": "^1.6.7", "lucide-react": "^0.323.0", "react": "^18.2.0", "react-dom": "^18.2.0", "electron-updater": "^6.1.8"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.17",
-    "electron": "^29.1.0",
-    "electron-builder": "^24.13.3",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "vite": "^5.1.0"
+    "@vitejs/plugin-react": "^4.2.1", "autoprefixer": "^10.4.17", "electron": "^29.1.0", "electron-builder": "^24.13.3", "postcss": "^8.4.35", "tailwindcss": "^3.4.1", "vite": "^5.1.0"
   },
   "build": {
-    "appId": "com.alphaengine.app",
-    "productName": "AlphaEngine",
-    "publish": [
-      {
-        "provider": "github",
-        "releaseType": "release"
-      }
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "../dist",
-        "to": "backend",
-        "filter": ["**/*"]
-      }
-    ],
-    "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": "dmg"
-    }
+    "appId": "com.alphaengine.app", "productName": "AlphaEngine",
+    "publish": [{ "provider": "github", "releaseType": "release" }],
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "electron/**/*"],
+    "extraResources": [{ "from": "../dist", "to": "backend", "filter": ["**/*"] }],
+    "win": { "target": "nsis" }, "mac": { "target": "dmg" }
   }
 }
