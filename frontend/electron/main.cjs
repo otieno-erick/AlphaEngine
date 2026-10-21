@@ -30,11 +30,10 @@ function createWindow() {
     }
   });
 
-  // --- THE FIX: Force external links to open in the default system browser ---
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http:') || url.startsWith('https:')) {
-      shell.openExternal(url); // Opens in Chrome/Edge
-      return { action: 'deny' }; // Prevents the white Electron window
+      shell.openExternal(url);
+      return { action: 'deny' };
     }
     return { action: 'allow' };
   });
@@ -49,7 +48,7 @@ function createWindow() {
   }, 3000);
 }
 
-// --- AUTO UPDATER LOGIC ---
+// --- AUTO UPDATER ---
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.on('update-available', () => {
