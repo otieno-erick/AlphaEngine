@@ -4,6 +4,10 @@
   "description": "Alpha Engine Desktop App",
   "main": "electron/main.js",
   "author": "Your Name",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/otieno-erick/AlphaEngine.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -37,7 +41,7 @@
     ],
     "extraResources": [
       {
-        "from": "../backend/dist/backend.exe",
+        "from": "../dist/backend.exe",
         "to": "backend/backend.exe"
       }
     ],
