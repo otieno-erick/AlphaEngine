@@ -13,7 +13,8 @@ export default function Login({ onLogin }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('/api/login', { email, password });
+      // Point directly to the Python backend for production
+      const res = await axios.post('http://127.0.0.1:8080/login', { email, password });
       
       if (res.data.status === 'success') {
         onLogin();
