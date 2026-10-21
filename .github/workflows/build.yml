@@ -3,7 +3,10 @@ name: Build Desktop App
 on:
   push:
     tags:
-      - 'v*' # Triggers when you create a version tag like v1.0.0
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -15,8 +18,6 @@ jobs:
             platform: win
           - os: macos-latest
             platform: mac
-          - os: ubuntu-latest
-            platform: linux
 
     steps:
       - name: Checkout Code
