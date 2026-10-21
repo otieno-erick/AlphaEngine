@@ -9,7 +9,6 @@ import asyncio
 
 app = FastAPI(title="Alpha Engine Backend")
 
-# Allow the Electron app to communicate with the backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize engines
 brain = BrainEngine()
 llm = LLMManager()
 task_mgr = TaskManager(max_concurrent_slots=10)
@@ -26,6 +24,9 @@ task_mgr = TaskManager(max_concurrent_slots=10)
 class LoginData(BaseModel):
     email: str
     password: str
+
+class BiometricsData(BaseModel):
+    persona_url: str
 
 class SimulationData(BaseModel):
     alpha_payload: dict
@@ -37,6 +38,10 @@ class LLMData(BaseModel):
 @app.post("/login")
 def login(data: LoginData):
     return brain.login(data.email, data.password)
+
+@app.post("/verify-biometrics")
+def verify_biometrics(data: BiometricsData):
+    return brain.verify_biometrics(data.persona_url)
 
 @app.post("/simulate")
 async def simulate(data: SimulationData):
@@ -63,7 +68,6 @@ async def generate_alpha(prompt: str):
 async def startup_event():
     asyncio.create_task(task_mgr.worker())
 
-# THIS IS THE CRUCIAL ADDITION FOR THE .EXE
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8080)
