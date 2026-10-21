@@ -1,19 +1,22 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const { spawn } = require('child_process');
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let pythonProcess;
 
 function startPythonBackend() {
   const isDev = !app.isPackaged;
-  
+
   if (isDev) {
     pythonProcess = spawn('python', [path.join(__dirname, '../../main.py')]);
   } else {
     const backendExe = process.platform === 'win32' ? 'backend.exe' : 'backend';
     const backendPath = path.join(process.resourcesPath, 'backend', backendExe);
-    
     pythonProcess = spawn(backendPath, [], { detached: false });
   }
 
@@ -39,7 +42,7 @@ function createWindow() {
     } else {
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
-  }, 3000); 
+  }, 3000);
 }
 
 app.whenReady().then(() => {
