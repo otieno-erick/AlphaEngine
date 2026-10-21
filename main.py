@@ -1,4 +1,5 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from brain_engine import BrainEngine
 from llm_manager import LLMManager
@@ -7,6 +8,15 @@ import uuid
 import asyncio
 
 app = FastAPI(title="Alpha Engine Backend")
+
+# Allow the Electron app to communicate with the backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize engines
 brain = BrainEngine()
@@ -45,12 +55,15 @@ def add_llm_key(data: LLMData):
 
 @app.post("/generate-alpha")
 async def generate_alpha(prompt: str):
-    # Runs the LLM in a background thread
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(None, llm.generate_alpha, prompt)
     return result
 
-# Start the background task worker
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(task_mgr.worker())
+
+# THIS IS THE CRUCIAL ADDITION FOR THE .EXE
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8080)
