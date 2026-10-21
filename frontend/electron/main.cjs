@@ -1,7 +1,7 @@
 const { app, BrowserWindow, dialog, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 
 let mainWindow;
 let pythonProcess;
@@ -19,6 +19,17 @@ function startPythonBackend() {
   pythonProcess.stderr.on('data', (data) => console.error(`Backend Error: ${data}`));
 }
 
+function killPython() {
+  if (pythonProcess && pythonProcess.pid) {
+    if (process.platform === 'win32') {
+      // Force kill the entire process tree on Windows (fixes the .exe lock)
+      exec(`taskkill /pid ${pythonProcess.pid} /T /F`);
+    } else {
+      pythonProcess.kill('SIGKILL');
+    }
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -30,12 +41,10 @@ function createWindow() {
     }
   });
 
+  // Force links to open in the system browser (Chrome/Edge)
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWith('https:')) {
-      shell.openExternal(url);
-      return { action: 'deny' };
-    }
-    return { action: 'allow' };
+    shell.openExternal(url);
+    return { action: 'deny' };
   });
 
   setTimeout(() => {
@@ -58,7 +67,12 @@ autoUpdater.on('update-downloaded', () => {
   dialog.showMessageBox({
     type: 'info', title: 'Update Ready', message: 'Update downloaded. Restart to apply.',
     buttons: ['Restart Now', 'Later']
-  }).then((result) => { if (result.response === 0) autoUpdater.quitAndInstall(); });
+  }).then((result) => { 
+    if (result.response === 0) {
+      killPython(); // Kill backend before restarting
+      autoUpdater.quitAndInstall(); 
+    }
+  });
 });
 
 app.whenReady().then(() => {
@@ -69,7 +83,9 @@ app.whenReady().then(() => {
   }
 });
 
+// Ensure the backend dies with the app
+app.on('before-quit', killPython);
 app.on('window-all-closed', () => {
-  if (pythonProcess) pythonProcess.kill();
+  killPython();
   if (process.platform !== 'darwin') app.quit();
 });
